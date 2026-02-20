@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	exec := &network.LogExecutor{}
+	exec := network.NewIPTablesExecutor("8443", 30*time.Second)
 
 	seq := []int{1111, 2222, 3333}
 	sm := network.NewStateManager(seq, 10*time.Second, exec)

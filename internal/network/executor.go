@@ -2,22 +2,65 @@ package network
 
 import (
 	"fmt"
+	"os/exec"
 	"time"
 )
 
-type LogExecutor struct{}
+type flag = string
 
-func (le *LogExecutor) GrantAccess(ip string) error {
-	fmt.Printf("Access Granted for %v\n", ip)
+const (
+	check  flag = "-C"
+	add    flag = "-A"
+	delete flag = "-D"
+)
 
-	time.AfterFunc(1*time.Hour, func() {
-		le.RevokeAccess(ip)
-	})
+type IPTablesExecutor struct {
+	safePort string
+	timeout  time.Duration
+}
+
+func NewIPTablesExecutor(safePort string, timeout time.Duration) *IPTablesExecutor {
+	ipte := &IPTablesExecutor{safePort: safePort, timeout: timeout}
+
+	return ipte
+}
+
+func (ipte *IPTablesExecutor) GrantAccess(ip string) error {
+	err := ipte.ruleAction(ip, check)
+	if err != nil {
+		err = ipte.ruleAction(ip, add)
+		if err != nil {
+			fmt.Printf("couldn't add iptables rule: %v\n", err.Error())
+			return err
+		}
+		fmt.Printf("access granted for %v\n", ip)
+
+		time.AfterFunc(ipte.timeout, func() {
+			ipte.RevokeAccess(ip)
+		})
+	}
 
 	return nil
 }
 
-func (le *LogExecutor) RevokeAccess(ip string) error {
-	fmt.Printf("Access Revoked for %v\n", ip)
+func (ipte *IPTablesExecutor) RevokeAccess(ip string) error {
+	err := ipte.ruleAction(ip, delete)
+	if err != nil {
+		fmt.Printf("couldn't delete iptables rule: %v", err.Error())
+		return err
+	}
+
+	fmt.Printf("access revoked for %v", ip)
+	return nil
+}
+
+func (ipte *IPTablesExecutor) ruleAction(ip, key string) error {
+	cmd := exec.Command("iptables", key, "INPUT", "-s", ip, "-p", "tcp", "--dport", ipte.safePort, "-j", "ACCEPT")
+	err := cmd.Run()
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
