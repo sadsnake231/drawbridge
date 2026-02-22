@@ -3,7 +3,6 @@ package network
 import (
 	"fmt"
 	"os/exec"
-	"strconv"
 )
 
 type flag = string
@@ -18,8 +17,8 @@ type IPTablesExecutor struct {
 	safePort string
 }
 
-func NewIPTablesExecutor(safePort int) *IPTablesExecutor {
-	return &IPTablesExecutor{safePort: strconv.Itoa(safePort)}
+func NewIPTablesExecutor(safePort uint16) *IPTablesExecutor {
+	return &IPTablesExecutor{safePort: fmt.Sprintf("%d", safePort)}
 }
 
 func (ipte *IPTablesExecutor) GrantAccess(ip string) error {

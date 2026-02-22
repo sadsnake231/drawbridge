@@ -7,14 +7,15 @@ import (
 )
 
 type StateManager struct {
-	secretSequence []int
+	secretSequence []uint16
 	knockTimeout   time.Duration
 	states         sync.Map
+	activeGrants   sync.Map
 	executor       FirewallManager
 	closeTimeout   time.Duration
 }
 
-func NewStateManager(seq []int, knockTimeout time.Duration, closeTimeout time.Duration, exec FirewallManager) *StateManager {
+func NewStateManager(seq []uint16, knockTimeout time.Duration, closeTimeout time.Duration, exec FirewallManager) *StateManager {
 	sm := &StateManager{
 		secretSequence: seq,
 		knockTimeout:   knockTimeout,
@@ -31,7 +32,7 @@ type ipState struct {
 	stage     int
 }
 
-func (sm *StateManager) HandlePacket(ip string, port int) {
+func (sm *StateManager) HandlePacket(ip string, port uint16) {
 	val, exists := sm.states.Load(ip)
 	if !exists {
 		if sm.IsRightPort(port, 0) {
@@ -58,12 +59,14 @@ func (sm *StateManager) HandlePacket(ip string, port int) {
 				slog.Error("failed to grant access", "error", err, "ip", ip)
 			} else {
 				slog.Info("access granted", "ip", ip)
+				sm.activeGrants.Store(ip, struct{}{})
 
 				time.AfterFunc(sm.closeTimeout, func() {
 					if err := sm.executor.RevokeAccess(ip); err != nil {
 						slog.Error("failed to revoke access on timeout", "error", err, "ip", ip)
 					} else {
 						slog.Info("access revoked", "ip", ip)
+						sm.activeGrants.Delete(ip)
 					}
 				})
 			}
@@ -76,7 +79,7 @@ func (sm *StateManager) HandlePacket(ip string, port int) {
 
 }
 
-func (sm *StateManager) IsRightPort(port, stage int) bool {
+func (sm *StateManager) IsRightPort(port uint16, stage int) bool {
 	if stage >= len(sm.secretSequence) {
 		return false
 	}
@@ -94,6 +97,8 @@ func (sm *StateManager) deleteRecord(ip string) {
 
 func (sm *StateManager) runCleanUp() {
 	ticker := time.NewTicker(10 * time.Minute)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ticker.C:
@@ -106,4 +111,17 @@ func (sm *StateManager) runCleanUp() {
 			})
 		}
 	}
+}
+
+func (sm *StateManager) Shutdown() {
+	sm.activeGrants.Range(func(k, v any) bool {
+		ip := k.(string)
+		if err := sm.executor.RevokeAccess(ip); err != nil {
+			slog.Error("shutdown: failed to revoke access", "error", err, "ip", ip)
+		} else {
+			slog.Info("shutdown: access revoked", "ip", ip)
+		}
+
+		return true
+	})
 }

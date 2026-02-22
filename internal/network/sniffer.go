@@ -10,15 +10,15 @@ import (
 	"github.com/google/gopacket/pcap"
 )
 
-func StartSniffing(device string, sm *StateManager) {
-	handle, err := pcap.OpenLive(device, 1024, false, 1*time.Second)
+func StartSniffing(device string, snaplen int32, promisc bool, bpfFilter string, sm *StateManager) {
+
+	handle, err := pcap.OpenLive(device, snaplen, promisc, 1*time.Second)
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	defer handle.Close()
 
-	err = handle.SetBPFFilter("tcp[tcpflags] & (tcp-syn) != 0")
+	err = handle.SetBPFFilter(bpfFilter)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -47,5 +47,5 @@ func processPacket(packet gopacket.Packet, sm *StateManager) {
 
 	slog.Debug("knock received", "ip", ip.SrcIP.String(), "port", tcp.DstPort)
 
-	sm.HandlePacket(ip.SrcIP.String(), int(tcp.DstPort))
+	sm.HandlePacket(ip.SrcIP.String(), uint16(tcp.DstPort))
 }

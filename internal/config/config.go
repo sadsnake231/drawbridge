@@ -9,25 +9,33 @@ import (
 
 type Config struct {
 	Interface    string        `yaml:"interface"`
-	Sequence     []int         `yaml:"sequence"`
+	Sequence     []uint16      `yaml:"sequence"`
 	KnockTimeout time.Duration `yaml:"knock-timeout"`
-	SafePort     int           `yaml:"safe-port"`
+	SafePort     uint16        `yaml:"safe-port"`
 	CloseTimeout time.Duration `yaml:"close-timeout"`
-	LogFile      string        `yaml:"log-file" default:"/var/log/drawbridge.log"`
+	LogFile      string        `yaml:"log-file"`
+	Snaplen      int32         `yaml:"snaplen"`
+	Promisc      bool          `yaml:"promisc"`
+	BPFFilter    string        `yaml:"bpf-filter"`
 }
 
 func LoadConfig(path string) (*Config, error) {
+	// Установка значений по умолчанию
+	cfg := Config{
+		LogFile:   "/var/log/drawbridge.log",
+		Snaplen:   1024,
+		Promisc:   false,
+		BPFFilter: "tcp[tcpflags] & (tcp-syn) != 0",
+	}
+
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-
-	var cfg Config
 
 	if err = yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
 
 	return &cfg, nil
-
 }

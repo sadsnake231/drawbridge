@@ -33,5 +33,6 @@ func main() {
 	sm := network.NewStateManager(cfg.Sequence, cfg.KnockTimeout, cfg.CloseTimeout, exec)
 
 	fmt.Printf("Starting Drawbridge on interface: %s\n", cfg.Interface)
-	network.StartSniffing(cfg.Interface, sm)
+
+	network.StartSniffing(cfg.Interface, cfg.Snaplen, cfg.Promisc, cfg.BPFFilter, sm)
 }
