@@ -11,7 +11,7 @@ import (
 )
 
 func StartSniffing(device string, sm *StateManager) {
-	handle, err := pcap.OpenLive(device, 1024, false, 10*time.Second)
+	handle, err := pcap.OpenLive(device, 1024, false, 1*time.Second)
 	if err != nil {
 		log.Fatal(err)
 	}
