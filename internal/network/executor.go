@@ -24,7 +24,7 @@ func NewIPTablesExecutor(safePort uint16) *IPTablesExecutor {
 func (ipte *IPTablesExecutor) GrantAccess(ip string) error {
 	if err := ipte.ruleAction(ip, check); err != nil {
 		if err = ipte.ruleAction(ip, add); err != nil {
-			return fmt.Errorf("couldn't add iptables rule: %w", err)
+			return fmt.Errorf("Couldn't add iptables rule: %w", err)
 		}
 	}
 	return nil
@@ -32,7 +32,7 @@ func (ipte *IPTablesExecutor) GrantAccess(ip string) error {
 
 func (ipte *IPTablesExecutor) RevokeAccess(ip string) error {
 	if err := ipte.ruleAction(ip, delete); err != nil {
-		return fmt.Errorf("couldn't delete iptables rule: %w", err)
+		return fmt.Errorf("Couldn't delete iptables rule: %w", err)
 	}
 	return nil
 }

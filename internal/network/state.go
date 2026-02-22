@@ -33,6 +33,10 @@ type ipState struct {
 }
 
 func (sm *StateManager) HandlePacket(ip string, port uint16) {
+	if _, active := sm.activeGrants.Load(ip); active {
+		return
+	}
+
 	val, exists := sm.states.Load(ip)
 	if !exists {
 		if sm.IsRightPort(port, 0) {
@@ -60,16 +64,16 @@ func (sm *StateManager) HandlePacket(ip string, port uint16) {
 		state.stage++
 		if state.stage == len(sm.secretSequence) {
 			if err := sm.executor.GrantAccess(ip); err != nil {
-				slog.Error("failed to grant access", "error", err, "ip", ip)
+				slog.Error("Failed to grant access", "error", err, "ip", ip)
 			} else {
 				slog.Info("access granted", "ip", ip)
 				sm.activeGrants.Store(ip, struct{}{})
 
 				time.AfterFunc(sm.closeTimeout, func() {
 					if err := sm.executor.RevokeAccess(ip); err != nil {
-						slog.Error("failed to revoke access on timeout", "error", err, "ip", ip)
+						slog.Error("Failed to revoke access on timeout", "error", err, "ip", ip)
 					} else {
-						slog.Info("access revoked", "ip", ip)
+						slog.Info("Access revoked", "ip", ip)
 						sm.activeGrants.Delete(ip)
 					}
 				})
@@ -121,9 +125,9 @@ func (sm *StateManager) Shutdown() {
 	sm.activeGrants.Range(func(k, v any) bool {
 		ip := k.(string)
 		if err := sm.executor.RevokeAccess(ip); err != nil {
-			slog.Error("shutdown: failed to revoke access", "error", err, "ip", ip)
+			slog.Error("Shutdown: failed to revoke access", "error", err, "ip", ip)
 		} else {
-			slog.Info("shutdown: access revoked", "ip", ip)
+			slog.Info("Shutdown: access revoked", "ip", ip)
 		}
 
 		return true

@@ -1,7 +1,6 @@
 package network
 
 import (
-	"log"
 	"log/slog"
 	"time"
 
@@ -10,17 +9,17 @@ import (
 	"github.com/google/gopacket/pcap"
 )
 
-func StartSniffing(device string, snaplen int32, promisc bool, bpfFilter string, sm *StateManager) {
+func StartSniffing(device string, snaplen int32, promisc bool, bpfFilter string, sm *StateManager) error {
 
 	handle, err := pcap.OpenLive(device, snaplen, promisc, 1*time.Second)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer handle.Close()
 
 	err = handle.SetBPFFilter(bpfFilter)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
@@ -28,6 +27,8 @@ func StartSniffing(device string, snaplen int32, promisc bool, bpfFilter string,
 	for packet := range packetSource.Packets() {
 		processPacket(packet, sm)
 	}
+
+	return nil
 }
 
 func processPacket(packet gopacket.Packet, sm *StateManager) {

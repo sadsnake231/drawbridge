@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	configPath := flag.String("config", "./drawbridge.yaml", "specify path to config")
+	configPath := flag.String("config", "/etc/drawbridge/config.yaml", "specify path to config")
 	flag.Parse()
 
 	cfg, err := config.LoadConfig(*configPath)
@@ -37,7 +37,13 @@ func main() {
 
 	fmt.Printf("Starting Drawbridge on interface: %s\n", cfg.Interface)
 
-	go network.StartSniffing(cfg.Interface, cfg.Snaplen, cfg.Promisc, cfg.BPFFilter, sm)
+	go func() {
+		err := network.StartSniffing(cfg.Interface, cfg.Snaplen, cfg.Promisc, cfg.BPFFilter, sm)
+		if err != nil {
+			slog.Error("Sniffer failed", "error", err)
+			os.Exit(1)
+		}
+	}()
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
