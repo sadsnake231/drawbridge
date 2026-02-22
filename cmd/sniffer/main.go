@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/sadsnake231/drawbridge/internal/config"
 	"github.com/sadsnake231/drawbridge/internal/logging"
@@ -34,5 +37,13 @@ func main() {
 
 	fmt.Printf("Starting Drawbridge on interface: %s\n", cfg.Interface)
 
-	network.StartSniffing(cfg.Interface, cfg.Snaplen, cfg.Promisc, cfg.BPFFilter, sm)
+	go network.StartSniffing(cfg.Interface, cfg.Snaplen, cfg.Promisc, cfg.BPFFilter, sm)
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+	<-sigCh
+	slog.Info("Shutting down Drawbridge...")
+
+	sm.Shutdown()
 }

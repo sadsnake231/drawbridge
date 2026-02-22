@@ -38,6 +38,6 @@ func (ipte *IPTablesExecutor) RevokeAccess(ip string) error {
 }
 
 func (ipte *IPTablesExecutor) ruleAction(ip, key string) error {
-	cmd := exec.Command("iptables", key, "INPUT", "-s", ip, "-p", "tcp", "--dport", ipte.safePort, "-j", "ACCEPT")
+	cmd := exec.Command("iptables", "-w", key, "INPUT", "-s", ip, "-p", "tcp", "--dport", ipte.safePort, "-j", "ACCEPT")
 	return cmd.Run()
 }

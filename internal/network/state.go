@@ -41,7 +41,11 @@ func (sm *StateManager) HandlePacket(ip string, port uint16) {
 		return
 	}
 
-	state := val.(*ipState)
+	state, ok := val.(*ipState)
+	if !ok {
+		sm.deleteRecord(ip)
+		return
+	}
 
 	if !state.IsRightTime(sm.knockTimeout) {
 		sm.deleteRecord(ip)
@@ -103,8 +107,8 @@ func (sm *StateManager) runCleanUp() {
 		select {
 		case <-ticker.C:
 			sm.states.Range(func(k, v any) bool {
-				ips := v.(*ipState)
-				if !ips.IsRightTime(sm.knockTimeout) {
+				ips, ok := v.(*ipState)
+				if !ok || !ips.IsRightTime(sm.knockTimeout) {
 					sm.deleteRecord(k.(string))
 				}
 				return true
