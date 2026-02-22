@@ -1,16 +1,27 @@
 package main
 
 import (
-	"time"
+	"flag"
+	"fmt"
+	"log"
 
+	"github.com/sadsnake231/drawbridge/internal/config"
 	"github.com/sadsnake231/drawbridge/internal/network"
 )
 
 func main() {
-	exec := network.NewIPTablesExecutor("8443", 30*time.Second)
+	configPath := flag.String("config", "./drawbridge.yaml", "specify path to config")
+	flag.Parse()
 
-	seq := []int{1111, 2222, 3333}
-	sm := network.NewStateManager(seq, 10*time.Second, exec)
+	cfg, err := config.LoadConfig(*configPath)
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+	}
 
-	network.StartSniffing("lo", sm)
+	exec := network.NewIPTablesExecutor(cfg.SafePort, cfg.CloseTimeout)
+
+	sm := network.NewStateManager(cfg.Sequence, cfg.KnockTimeout, exec)
+
+	fmt.Printf("Starting Drawbridge on interface: %s\n", cfg.Interface)
+	network.StartSniffing(cfg.Interface, sm)
 }

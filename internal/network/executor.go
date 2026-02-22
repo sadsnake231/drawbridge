@@ -3,6 +3,7 @@ package network
 import (
 	"fmt"
 	"os/exec"
+	"strconv"
 	"time"
 )
 
@@ -19,8 +20,8 @@ type IPTablesExecutor struct {
 	timeout  time.Duration
 }
 
-func NewIPTablesExecutor(safePort string, timeout time.Duration) *IPTablesExecutor {
-	ipte := &IPTablesExecutor{safePort: safePort, timeout: timeout}
+func NewIPTablesExecutor(safePort int, timeout time.Duration) *IPTablesExecutor {
+	ipte := &IPTablesExecutor{safePort: strconv.Itoa(safePort), timeout: timeout}
 
 	return ipte
 }

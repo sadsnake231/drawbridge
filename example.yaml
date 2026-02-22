@@ -1,0 +1,9 @@
+---
+interface: "lo"
+sequence:
+  - 1111
+  - 2222
+  - 3333
+knock-timeout: 15s
+safe-port: 22
+close-timeout: 15m
