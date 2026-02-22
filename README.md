@@ -29,7 +29,7 @@ sudo apt install libpcap-dev iptables
 A deployment script is provided to compile the binary, set up the configuration directory, and register the `systemd` service.
 
 ```bash
-git clone [https://github.com/sadsnake231/drawbridge.git](https://github.com/sadsnake231/drawbridge.git)
+git clone https://github.com/sadsnake231/drawbridge.git
 cd drawbridge
 chmod +x install.sh
 sudo ./install.sh
