@@ -13,6 +13,7 @@ type Config struct {
 	KnockTimeout time.Duration `yaml:"knock-timeout"`
 	SafePort     int           `yaml:"safe-port"`
 	CloseTimeout time.Duration `yaml:"close-timeout"`
+	LogFile      string        `yaml:"log-file" default:"/var/log/drawbridge.log"`
 }
 
 func LoadConfig(path string) (*Config, error) {

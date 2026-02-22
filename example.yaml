@@ -7,3 +7,4 @@ sequence:
 knock-timeout: 15s
 safe-port: 22
 close-timeout: 15m
+log-file: /var/log/drawbridge.log

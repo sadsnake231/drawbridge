@@ -4,8 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"log/slog"
 
 	"github.com/sadsnake231/drawbridge/internal/config"
+	"github.com/sadsnake231/drawbridge/internal/logging"
 	"github.com/sadsnake231/drawbridge/internal/network"
 )
 
@@ -18,9 +20,17 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	exec := network.NewIPTablesExecutor(cfg.SafePort, cfg.CloseTimeout)
+	logFile, err := logging.InitLogger(cfg.LogFile)
+	if err != nil {
+		log.Fatalf("Failed to initialize log file: %v", err)
+	}
+	defer logFile.Close()
 
-	sm := network.NewStateManager(cfg.Sequence, cfg.KnockTimeout, exec)
+	slog.Info("Drawbridge started", "interface", cfg.Interface)
+
+	exec := network.NewIPTablesExecutor(cfg.SafePort)
+
+	sm := network.NewStateManager(cfg.Sequence, cfg.KnockTimeout, cfg.CloseTimeout, exec)
 
 	fmt.Printf("Starting Drawbridge on interface: %s\n", cfg.Interface)
 	network.StartSniffing(cfg.Interface, sm)

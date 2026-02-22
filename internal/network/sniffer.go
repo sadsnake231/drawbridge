@@ -1,8 +1,8 @@
 package network
 
 import (
-	"fmt"
 	"log"
+	"log/slog"
 	"time"
 
 	"github.com/google/gopacket"
@@ -22,8 +22,6 @@ func StartSniffing(device string, sm *StateManager) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	fmt.Printf("Listening on %s", device)
 
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 
@@ -46,6 +44,8 @@ func processPacket(packet gopacket.Packet, sm *StateManager) {
 	}
 
 	tcp, _ := tcpLayer.(*layers.TCP)
+
+	slog.Debug("knock received", "ip", ip.SrcIP.String(), "port", tcp.DstPort)
 
 	sm.HandlePacket(ip.SrcIP.String(), int(tcp.DstPort))
 }

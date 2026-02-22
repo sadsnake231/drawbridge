@@ -1,20 +1,26 @@
 package network
 
 import (
-	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 )
 
 type StateManager struct {
 	secretSequence []int
-	timeout        time.Duration
+	knockTimeout   time.Duration
 	states         sync.Map
 	executor       FirewallManager
+	closeTimeout   time.Duration
 }
 
-func NewStateManager(seq []int, t time.Duration, exec FirewallManager) *StateManager {
-	sm := &StateManager{secretSequence: seq, timeout: t, executor: exec}
+func NewStateManager(seq []int, knockTimeout time.Duration, closeTimeout time.Duration, exec FirewallManager) *StateManager {
+	sm := &StateManager{
+		secretSequence: seq,
+		knockTimeout:   knockTimeout,
+		executor:       exec,
+		closeTimeout:   closeTimeout,
+	}
 	go sm.runCleanUp()
 
 	return sm
@@ -36,7 +42,7 @@ func (sm *StateManager) HandlePacket(ip string, port int) {
 
 	state := val.(*ipState)
 
-	if !state.IsRightTime(sm.timeout) {
+	if !state.IsRightTime(sm.knockTimeout) {
 		sm.deleteRecord(ip)
 
 		if sm.IsRightPort(port, 0) {
@@ -49,8 +55,19 @@ func (sm *StateManager) HandlePacket(ip string, port int) {
 		state.stage++
 		if state.stage == len(sm.secretSequence) {
 			if err := sm.executor.GrantAccess(ip); err != nil {
-				fmt.Printf("Error granting access: %v\n", err)
+				slog.Error("failed to grant access", "error", err, "ip", ip)
+			} else {
+				slog.Info("access granted", "ip", ip)
+
+				time.AfterFunc(sm.closeTimeout, func() {
+					if err := sm.executor.RevokeAccess(ip); err != nil {
+						slog.Error("failed to revoke access on timeout", "error", err, "ip", ip)
+					} else {
+						slog.Info("access revoked", "ip", ip)
+					}
+				})
 			}
+
 			sm.deleteRecord(ip)
 		}
 	} else {
@@ -67,8 +84,8 @@ func (sm *StateManager) IsRightPort(port, stage int) bool {
 	return port == sm.secretSequence[stage]
 }
 
-func (ips *ipState) IsRightTime(timeout time.Duration) bool {
-	return time.Since(ips.startTime) <= timeout
+func (ips *ipState) IsRightTime(knockTimeout time.Duration) bool {
+	return time.Since(ips.startTime) <= knockTimeout
 }
 
 func (sm *StateManager) deleteRecord(ip string) {
@@ -82,7 +99,7 @@ func (sm *StateManager) runCleanUp() {
 		case <-ticker.C:
 			sm.states.Range(func(k, v any) bool {
 				ips := v.(*ipState)
-				if !ips.IsRightTime(sm.timeout) {
+				if !ips.IsRightTime(sm.knockTimeout) {
 					sm.deleteRecord(k.(string))
 				}
 				return true
